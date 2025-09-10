@@ -74,5 +74,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 1.125rem; /* Increase base font size from 16px to 18px */
+  }
+  html {
+    font-size: 1.125rem; /* Increase root font size */
   }
 }
