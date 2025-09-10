@@ -68,8 +68,9 @@ export default function TransactionProcess() {
               return (
                 <div
                   key={`${step.id}-${index}`}
-                  className="rounded-xl p-5 shadow-lg flex-shrink-0 w-64 h-48 flex flex-col items-center justify-between text-center"
+                  className="rounded-xl p-5 shadow-lg flex-shrink-0 w-64 h-48 flex flex-col items-center justify-between text-center cursor-pointer hover:opacity-90 transition-opacity"
                   style={{ backgroundColor: "#03293C", color: "#ffffff" }}
+                  onClick={() => window.open('https://intellectuscapital.com.au/capabilities-2/', '_blank')}
                 >
                   <div className="flex flex-col items-center">
                     <div className="mb-2">
