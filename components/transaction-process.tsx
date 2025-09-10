@@ -45,10 +45,10 @@ const transactionSteps = [
 
 export default function TransactionProcess() {
   return (
-    <section className="py-12 px-8 bg-gray-50">
+    <section className="py-12 px-8 bg-white">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 pl-2">
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Our Transaction Process</h2>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Our Transaction Process</h1>
           <p className="text-sm text-gray-600 max-w-2xl">
             Our process guides you from assessment to completion with precision, ensuring a seamless transaction and
             minimal business disruption.
