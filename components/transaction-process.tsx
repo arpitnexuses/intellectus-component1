@@ -48,7 +48,7 @@ export default function TransactionProcess() {
     <section className="py-12 px-8 bg-white">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Our Transaction Process</h1>
+          <h1 className="text-4xl font-medium text-gray-900 mb-4">Our Transaction Process</h1>
           <p className="text-lg text-gray-600 max-w-4xl mx-auto">
             Our process guides you from assessment to completion with precision, ensuring a seamless transaction and
             minimal business disruption.
