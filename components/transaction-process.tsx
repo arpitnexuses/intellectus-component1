@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useRef } from "react"
 import Image from "next/image"
 
 const transactionSteps = [
@@ -44,6 +45,21 @@ const transactionSteps = [
 ]
 
 export default function TransactionProcess() {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % transactionSteps.length)
+  }
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + transactionSteps.length) % transactionSteps.length)
+  }
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index)
+  }
+
   return (
     <section className="py-12 px-8 bg-white">
       <div className="max-w-7xl mx-auto">
@@ -56,19 +72,19 @@ export default function TransactionProcess() {
         </div>
 
         <div className="relative overflow-hidden">
-          <div
-            className="flex gap-4 will-change-transform"
-            style={{
-              animation: "smoothScroll 12s linear infinite",
-              transform: "translateZ(0)",
-            }}
-          >
-            {/* Render cards twice for seamless loop */}
-            {[...transactionSteps, ...transactionSteps].map((step, index) => {
+          <div className="w-full max-w-5xl mx-auto">
+            <div
+              ref={containerRef}
+              className="flex gap-6 transition-transform duration-300 ease-in-out"
+              style={{
+                transform: `translateX(-${currentIndex * (320 + 24)}px)`,
+              }}
+            >
+            {transactionSteps.map((step, index) => {
               return (
                 <div
-                  key={`${step.id}-${index}`}
-                  className="rounded-xl p-5 shadow-lg flex-shrink-0 w-64 h-48 flex flex-col items-center justify-between text-center cursor-pointer hover:opacity-90 transition-opacity"
+                  key={step.id}
+                  className="rounded-xl p-6 shadow-lg flex-shrink-0 w-80 h-56 flex flex-col items-center justify-between text-center cursor-pointer hover:opacity-90 transition-opacity"
                   style={{ backgroundColor: "#03293C", color: "#ffffff" }}
                   onClick={() => window.open('https://intellectuscapital.com.au/capabilities-2/', '_blank')}
                 >
@@ -95,28 +111,47 @@ export default function TransactionProcess() {
                 </div>
               )
             })}
+            </div>
+
+            {/* Navigation Arrows */}
+            <button
+              onClick={prevSlide}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110 z-10"
+              aria-label="Previous slide"
+            >
+              <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            <button
+              onClick={nextSlide}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110 z-10"
+              aria-label="Next slide"
+            >
+              <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
         </div>
-      </div>
 
-      <style jsx>{`
-        @keyframes smoothScroll {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-        
-        /* Optimized hardware acceleration */
-        .flex {
-          transform: translateZ(0);
-          backface-visibility: hidden;
-          perspective: 1000px;
-          -webkit-font-smoothing: antialiased;
-        }
-      `}</style>
+        {/* Pagination Dots */}
+        <div className="flex justify-center mt-6 space-x-3">
+          {Array.from({ length: 4 }, (_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                index === currentIndex 
+                  ? 'bg-gray-800 scale-125' 
+                  : 'bg-gray-300 hover:bg-gray-400'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      </div>
     </section>
   )
 }
