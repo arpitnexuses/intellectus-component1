@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 
 const transactionSteps = [
@@ -46,17 +46,30 @@ const transactionSteps = [
 
 export default function TransactionProcess() {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   // Ensure currentIndex is within bounds
-  const safeCurrentIndex = Math.max(0, Math.min(currentIndex, transactionSteps.length - 1))
+  const maxIndex = isMobile ? transactionSteps.length - 1 : 4
+  const safeCurrentIndex = Math.max(0, Math.min(currentIndex, maxIndex))
 
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % 5)
+    setCurrentIndex((prev) => (prev + 1) % (maxIndex + 1))
   }
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + 5) % 5)
+    setCurrentIndex((prev) => (prev - 1 + (maxIndex + 1)) % (maxIndex + 1))
   }
 
   const goToSlide = (index: number) => {
@@ -75,38 +88,38 @@ export default function TransactionProcess() {
         </div>
 
         <div className="relative overflow-hidden">
-          <div className="w-full max-w-3xl mx-auto pl-0 -ml-0">
+          <div className="w-full max-w-xs mx-auto px-1 md:max-w-6xl md:px-0 md:pl-0">
             <div
               ref={containerRef}
-              className="flex gap-6 transition-transform duration-300 ease-in-out -ml-0"
+              className="flex gap-2 md:gap-6 transition-transform duration-300 ease-in-out md:pl-0 md:-ml-0"
               style={{
-                transform: `translateX(-${safeCurrentIndex * (320 + 24)}px)`,
+                transform: `translateX(-${safeCurrentIndex * (isMobile ? 100 : 280)}${isMobile ? '%' : 'px'})`,
               }}
             >
             {transactionSteps.map((step, index) => {
               return (
                 <div
                   key={step.id}
-                  className="rounded-xl p-6 shadow-lg flex-shrink-0 w-80 h-60 flex flex-col items-center justify-between text-center cursor-pointer hover:opacity-90 transition-opacity"
+                  className="rounded-xl p-3 md:p-6 shadow-lg flex-shrink-0 w-[calc(100%-0.5rem)] h-52 md:w-80 md:h-60 flex flex-col items-center justify-between text-center cursor-pointer hover:opacity-90 transition-opacity"
                   style={{ backgroundColor: "#03293C", color: "#ffffff" }}
                   onClick={() => window.open('https://intellectuscapital.com.au/capabilities-2/', '_blank')}
                 >
                   <div className="flex flex-col items-center">
-                    <div className="mb-4">
+                    <div className="mb-3 md:mb-4">
                         <Image
                         src={step.iconSrc}
                           alt={`${step.title} icon`}
                           width={80}
                           height={80}
-                          className="w-20 h-20 opacity-70"
+                          className="w-16 h-16 md:w-20 md:h-20 opacity-70"
                         />
                     </div>
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: "#ffffff" }}>
+                    <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3" style={{ color: "#ffffff" }}>
                       {step.title}
                     </h3>
                   </div>
                   <p
-                    className="text-base leading-relaxed flex-1 flex items-center justify-center px-3"
+                    className="text-sm md:text-base leading-relaxed flex-1 flex items-center justify-center px-2 md:px-3"
                     style={{ color: "#e2e8f0" }}
                   >
                     {step.description}
@@ -140,18 +153,37 @@ export default function TransactionProcess() {
 
           {/* Pagination Dots */}
           <div className="flex space-x-2">
-            {Array.from({ length: Math.min(5, transactionSteps.length) }, (_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`transition-all duration-200 ${
-                  index === safeCurrentIndex 
-                    ? 'w-6 h-2 bg-gray-800 rounded-sm' 
-                    : 'w-2 h-2 bg-gray-300 rounded-full hover:bg-gray-400'
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
+            {/* Mobile: Show all 6 dots (one card at a time) */}
+            <div className="flex space-x-2 md:hidden">
+              {Array.from({ length: transactionSteps.length }, (_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`transition-all duration-200 ${
+                    index === safeCurrentIndex 
+                      ? 'w-6 h-2 bg-gray-800 rounded-sm' 
+                      : 'w-2 h-2 bg-gray-300 rounded-full hover:bg-gray-400'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
+            
+            {/* Desktop: Show 5 dots (3.5 cards view) - UNCHANGED */}
+            <div className="hidden md:flex space-x-2">
+              {Array.from({ length: 5 }, (_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`transition-all duration-200 ${
+                    index === safeCurrentIndex 
+                      ? 'w-6 h-2 bg-gray-800 rounded-sm' 
+                      : 'w-2 h-2 bg-gray-300 rounded-full hover:bg-gray-400'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Right Arrow */}
