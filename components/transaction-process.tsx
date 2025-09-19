@@ -48,6 +48,8 @@ export default function TransactionProcess() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -58,6 +60,15 @@ export default function TransactionProcess() {
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Cleanup wheel timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (wheelTimeoutRef.current) {
+        clearTimeout(wheelTimeoutRef.current)
+      }
+    }
   }, [])
 
   // Ensure currentIndex is within bounds
@@ -76,6 +87,105 @@ export default function TransactionProcess() {
     setCurrentIndex(index)
   }
 
+  // Swipe detection functions
+  const minSwipeDistance = 50
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe) {
+      nextSlide()
+    }
+    if (isRightSwipe) {
+      prevSlide()
+    }
+  }
+
+  // Trackpad scroll detection
+  const [wheelDelta, setWheelDelta] = useState(0)
+  const wheelTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const onWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    
+    // Clear existing timeout
+    if (wheelTimeoutRef.current) {
+      clearTimeout(wheelTimeoutRef.current)
+    }
+    
+    // Accumulate wheel delta
+    const newDelta = wheelDelta + e.deltaX
+    setWheelDelta(newDelta)
+    
+    // Check if we've reached the threshold
+    if (Math.abs(newDelta) > 100) {
+      if (newDelta > 0) {
+        nextSlide()
+      } else {
+        prevSlide()
+      }
+      setWheelDelta(0)
+    }
+    
+    // Reset delta after a short delay
+    wheelTimeoutRef.current = setTimeout(() => {
+      setWheelDelta(0)
+    }, 150)
+  }
+
+  // Mouse drag detection for trackpad (improved)
+  const [mouseStart, setMouseStart] = useState<number | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    // Only start drag on left mouse button
+    if (e.button === 0) {
+      setIsDragging(true)
+      setMouseStart(e.clientX)
+    }
+  }
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || mouseStart === null) return
+    
+    const currentX = e.clientX
+    const distance = mouseStart - currentX
+    
+    // Trigger navigation immediately when threshold is reached
+    if (Math.abs(distance) > minSwipeDistance) {
+      if (distance > 0) {
+        nextSlide()
+      } else {
+        prevSlide()
+      }
+      setIsDragging(false)
+      setMouseStart(null)
+    }
+  }
+
+  const onMouseUp = () => {
+    setIsDragging(false)
+    setMouseStart(null)
+  }
+
+  const onMouseLeave = () => {
+    setIsDragging(false)
+    setMouseStart(null)
+  }
+
   return (
     <section className="py-12 px-8 bg-white">
       <div className="max-w-7xl mx-auto">
@@ -89,12 +199,20 @@ export default function TransactionProcess() {
 
         <div className="relative overflow-hidden">
           <div className="w-full max-w-xs mx-auto px-1 md:max-w-6xl md:px-0 md:pl-0">
-            <div
+          <div
               ref={containerRef}
-              className="flex gap-2 md:gap-6 transition-transform duration-300 ease-in-out md:pl-0 md:-ml-0"
-              style={{
+              className="flex gap-2 md:gap-6 transition-transform duration-300 ease-in-out md:pl-0 md:-ml-0 select-none"
+            style={{
                 transform: `translateX(-${safeCurrentIndex * (isMobile ? 100 : 280)}${isMobile ? '%' : 'px'})`,
               }}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onWheel={onWheel}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={onMouseLeave}
             >
             {transactionSteps.map((step, index) => {
               return (
@@ -127,9 +245,9 @@ export default function TransactionProcess() {
                 </div>
               )
             })}
-            </div>
           </div>
         </div>
+      </div>
 
         {/* Navigation Controls - Below First Card */}
         <div className="flex justify-start items-center mt-8 ml-0 space-x-4">
