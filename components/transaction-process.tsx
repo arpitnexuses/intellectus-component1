@@ -50,6 +50,8 @@ export default function TransactionProcess() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const [isNavigating, setIsNavigating] = useState(false)
+  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -62,11 +64,14 @@ export default function TransactionProcess() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Cleanup wheel timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (wheelTimeoutRef.current) {
         clearTimeout(wheelTimeoutRef.current)
+      }
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current)
       }
     }
   }, [])
@@ -75,32 +80,60 @@ export default function TransactionProcess() {
   const maxIndex = isMobile ? transactionSteps.length - 1 : 4
   const safeCurrentIndex = Math.max(0, Math.min(currentIndex, maxIndex))
 
+  // Debounced navigation to prevent rapid navigation
+  const debouncedNavigation = (direction: 'next' | 'prev' | 'goto', index?: number) => {
+    if (isNavigating) return
+    
+    setIsNavigating(true)
+    
+    // Clear existing timeout
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current)
+    }
+    
+    if (direction === 'next') {
+      setCurrentIndex((prev) => (prev + 1) % (maxIndex + 1))
+    } else if (direction === 'prev') {
+      setCurrentIndex((prev) => (prev - 1 + (maxIndex + 1)) % (maxIndex + 1))
+    } else if (direction === 'goto' && index !== undefined) {
+      setCurrentIndex(index)
+    }
+    
+    // Reset navigation lock after animation completes
+    navigationTimeoutRef.current = setTimeout(() => {
+      setIsNavigating(false)
+    }, 400) // Slightly longer than transition duration
+  }
+
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % (maxIndex + 1))
+    debouncedNavigation('next')
   }
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + (maxIndex + 1)) % (maxIndex + 1))
+    debouncedNavigation('prev')
   }
 
   const goToSlide = (index: number) => {
-    setCurrentIndex(index)
+    debouncedNavigation('goto', index)
   }
 
   // Swipe detection functions
-  const minSwipeDistance = 50
+  const minSwipeDistance = 80 // Increased threshold to prevent accidental swipes
+  const maxVerticalDistance = 100 // Prevent vertical swipes from triggering navigation
 
   const onTouchStart = (e: React.TouchEvent) => {
+    if (isNavigating) return
     setTouchEnd(null)
     setTouchStart(e.targetTouches[0].clientX)
   }
 
   const onTouchMove = (e: React.TouchEvent) => {
+    if (isNavigating) return
     setTouchEnd(e.targetTouches[0].clientX)
   }
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
+    if (isNavigating || !touchStart || !touchEnd) return
     
     const distance = touchStart - touchEnd
     const isLeftSwipe = distance > minSwipeDistance
@@ -119,6 +152,8 @@ export default function TransactionProcess() {
   const wheelTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const onWheel = (e: React.WheelEvent) => {
+    if (isNavigating) return
+    
     e.preventDefault()
     
     // Clear existing timeout
@@ -130,8 +165,8 @@ export default function TransactionProcess() {
     const newDelta = wheelDelta + e.deltaX
     setWheelDelta(newDelta)
     
-    // Check if we've reached the threshold
-    if (Math.abs(newDelta) > 100) {
+    // Check if we've reached the threshold (increased for better control)
+    if (Math.abs(newDelta) > 150) {
       if (newDelta > 0) {
         nextSlide()
       } else {
@@ -140,10 +175,10 @@ export default function TransactionProcess() {
       setWheelDelta(0)
     }
     
-    // Reset delta after a short delay
+    // Reset delta after a longer delay to prevent rapid scrolling
     wheelTimeoutRef.current = setTimeout(() => {
       setWheelDelta(0)
-    }, 150)
+    }, 300)
   }
 
   // Mouse drag detection for trackpad (improved)
@@ -151,6 +186,7 @@ export default function TransactionProcess() {
   const [isDragging, setIsDragging] = useState(false)
 
   const onMouseDown = (e: React.MouseEvent) => {
+    if (isNavigating) return
     // Only start drag on left mouse button
     if (e.button === 0) {
       setIsDragging(true)
@@ -159,13 +195,13 @@ export default function TransactionProcess() {
   }
 
   const onMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || mouseStart === null) return
+    if (!isDragging || mouseStart === null || isNavigating) return
     
     const currentX = e.clientX
     const distance = mouseStart - currentX
     
-    // Trigger navigation immediately when threshold is reached
-    if (Math.abs(distance) > minSwipeDistance) {
+    // Trigger navigation when threshold is reached (increased threshold)
+    if (Math.abs(distance) > 100) {
       if (distance > 0) {
         nextSlide()
       } else {
